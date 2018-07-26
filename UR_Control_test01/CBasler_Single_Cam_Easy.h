@@ -24,7 +24,7 @@ public:
 	void Release_Cam(void);			// 释放所有Pylon的变量
 	bool Cap_single_image(void);	// 获取单帧图像
 
-	Mat Image_Captured;
+	Mat Current_Mat;
 
 private:
 	static const uint32_t c_countOfImagesToGrab = 1;

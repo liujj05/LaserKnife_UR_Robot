@@ -46,12 +46,18 @@ bool CBasler_Single_Cam_Easy::Init_Cam(void)
 #ifdef SHOW_MID_RES
 				cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
 #endif
-				// 初始化 Mat
-				Image_Captured = cv::Mat(ptrGrabResult->GetHeight(),
+				// 初始化 Current_Mat
+				Mat Image_Captured = cv::Mat(ptrGrabResult->GetHeight(),
 					ptrGrabResult->GetWidth(),
 					CV_8UC1,
 					(uint8_t *)ptrGrabResult->GetBuffer());
-
+				Current_Mat = Image_Captured.clone();
+				/*
+				namedWindow("TestImage");
+				imshow("TestImage", Image_Captured);
+				waitKey(2000);
+				destroyWindow("TestImage");
+				*/
 				exitcode = true;
 			}// if (ptrGrabResult->GrabSucceeded())
 			else
@@ -116,7 +122,19 @@ bool CBasler_Single_Cam_Easy::Cap_single_image(void)
 				cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
 #endif
 				// 更新 Mat
-				memcpy(Image_Captured.data, ptrGrabResult->GetBuffer(), Image_Captured.rows * Image_Captured.cols * sizeof(uchar));
+				//memcpy(Image_Captured.data, ptrGrabResult->GetBuffer(), Image_Captured.rows * Image_Captured.cols * sizeof(uchar));
+				Mat Image_Captured = cv::Mat(ptrGrabResult->GetHeight(),
+					ptrGrabResult->GetWidth(),
+					CV_8UC1,
+					(uint8_t *)ptrGrabResult->GetBuffer());
+
+				Image_Captured.copyTo(Current_Mat);
+				/*
+				namedWindow("TestImage2");
+				imshow("TestImage2", Image_Captured);
+				waitKey(2000);
+				destroyWindow("TestImage2");
+				*/
 				exitCode = true;
 			}// if (ptrGrabResult->GrabSucceeded())
 			else
