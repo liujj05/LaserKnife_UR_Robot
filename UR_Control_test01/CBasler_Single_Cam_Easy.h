@@ -5,8 +5,12 @@
 #    include <pylon/PylonGUI.h>
 #endif
 
+#include <opencv2/opencv.hpp>
+
+
 using namespace Pylon;
 using namespace std;
+using namespace cv;
 
 class CBasler_Single_Cam_Easy
 {
@@ -16,12 +20,15 @@ public:
 
 	CInstantCamera camera;
 
-	bool Init_Cam(void);			// ³õÊ¼»¯µ¥¸öÏà»ú
-	void Release_Cam(void);			// ÊÍ·ÅËùÓĞPylonµÄ±äÁ¿
-	bool Cap_single_image(void);	// »ñÈ¡µ¥Ö¡Í¼Ïñ
+	bool Init_Cam(void);			// åˆå§‹åŒ–å•ä¸ªç›¸æœº
+	void Release_Cam(void);			// é‡Šæ”¾æ‰€æœ‰Pylonçš„å˜é‡
+	bool Cap_single_image(void);	// è·å–å•å¸§å›¾åƒ
+
+	Mat Image_Captured;
 
 private:
 	static const uint32_t c_countOfImagesToGrab = 1;
+	CGrabResultPtr ptrGrabResult;
 	bool if_init;
 };
 

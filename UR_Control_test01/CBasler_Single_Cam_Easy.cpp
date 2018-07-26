@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "CBasler_Single_Cam_Easy.h"
 
 
@@ -26,6 +26,42 @@ bool CBasler_Single_Cam_Easy::Init_Cam(void)
 		cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
 #endif
 		camera.MaxNumBuffer = 5;
+
+		camera.StartGrabbing(c_countOfImagesToGrab);
+		
+		while (camera.IsGrabbing())
+		{
+			// Wait for an image and then retrieve it. A timeout of 5000 ms is used.
+			camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
+
+			// Image grabbed successfully?
+			if (ptrGrabResult->GrabSucceeded())
+			{
+				// Access the image data.
+#ifdef SHOW_MID_RES
+				cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
+				cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
+#endif
+				// const uint8_t *pImageBuffer = (uint8_t *)ptrGrabResult->GetBuffer();
+#ifdef SHOW_MID_RES
+				cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
+#endif
+				// 初始化 Mat
+				Image_Captured = cv::Mat(ptrGrabResult->GetHeight(),
+					ptrGrabResult->GetWidth(),
+					CV_8UC1,
+					(uint8_t *)ptrGrabResult->GetBuffer());
+
+				exitcode = true;
+			}// if (ptrGrabResult->GrabSucceeded())
+			else
+			{
+				cout << "Error: " << ptrGrabResult->GetErrorCode() << " " << ptrGrabResult->GetErrorDescription() << endl;
+				exitcode = false;
+			}
+		}// while(camera.IsGrabbing())
+
+
 		if_init = true;
 		exitcode = true;
 	}
@@ -44,6 +80,7 @@ bool CBasler_Single_Cam_Easy::Init_Cam(void)
 void CBasler_Single_Cam_Easy::Release_Cam(void)
 {
 	if_init = false;
+	// camera.StopGrabbing();
 	PylonTerminate();
 }
 
@@ -57,10 +94,10 @@ bool CBasler_Single_Cam_Easy::Cap_single_image(void)
 		return false;
 	}
 
+	// 读取新图像
 	try
 	{
 		camera.StartGrabbing(c_countOfImagesToGrab);
-		CGrabResultPtr ptrGrabResult;
 		while (camera.IsGrabbing())
 		{
 			// Wait for an image and then retrieve it. A timeout of 5000 ms is used.
@@ -74,11 +111,12 @@ bool CBasler_Single_Cam_Easy::Cap_single_image(void)
 				cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
 				cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
 #endif
-				const uint8_t *pImageBuffer = (uint8_t *)ptrGrabResult->GetBuffer();
+				// const uint8_t *pImageBuffer = (uint8_t *)ptrGrabResult->GetBuffer();
 #ifdef SHOW_MID_RES
 				cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
 #endif
-
+				// 更新 Mat
+				memcpy(Image_Captured.data, ptrGrabResult->GetBuffer(), Image_Captured.rows * Image_Captured.cols * sizeof(uchar));
 				exitCode = true;
 			}// if (ptrGrabResult->GrabSucceeded())
 			else
@@ -87,6 +125,10 @@ bool CBasler_Single_Cam_Easy::Cap_single_image(void)
 				exitCode = false;
 			}
 		}// while(camera.IsGrabbing())
+
+
+		if_init = true;
+		exitCode = true;
 	}
 	catch (const GenericException &e)
 	{
@@ -95,6 +137,7 @@ bool CBasler_Single_Cam_Easy::Cap_single_image(void)
 			<< e.GetDescription() << endl;
 		exitCode = false;
 	}
+
 	return exitCode;
 }
 
