@@ -3,6 +3,7 @@
 #pragma once
 #include "stdafx.h"
 #include "ur_RTDE.h"
+#include "CBasler_Single_Cam_Easy.h"
 #include <ctime>
 
 using namespace std;
@@ -23,15 +24,34 @@ int main()
 
 	// 初始化一个ur_RTDE类
 	ur_RTDE my_RTDE;
+	// 初始化一个CBasler_Single_Cam_Easy
+	CBasler_Single_Cam_Easy my_Cam;
 	
 	my_RTDE.RTDE_Initialize();
-
+	my_Cam.Init_Cam();
 	// 建立连接
 	my_RTDE.RTDE_Send_Start();
 
 	
 	UINT32 input_ctrl_flag = 0;
 	UINT32 gui_ctrl_int = 0;
+
+	// Test
+	/*
+
+	namedWindow("TestImage");
+	imshow("TestImage", my_Cam.Current_Mat);
+	waitKey(9000);
+	destroyWindow("TestImage");
+
+	my_Cam.Cap_single_image();
+	
+	namedWindow("TestImage");
+	imshow("TestImage", my_Cam.Current_Mat);
+	waitKey(9000);
+	destroyWindow("TestImage");
+
+	my_Cam.Release_Cam();*/
 
 	// Step1 机器人从待命状态启动
 	input_ctrl_flag = 1;
@@ -102,12 +122,17 @@ int main()
 
 	cout << "Robot has arrived at CAMERA position" << endl;
 	
+	cout << "Grabbing image..." << endl;
 	
 	// =================== 相机采集流程 ======================= 采集基准图像
-
+	my_Cam.Cap_single_image();
+	namedWindow("Base_Image", CV_WINDOW_NORMAL);
+	imshow("Base_Image", my_Cam.Current_Mat);
+	waitKey(5000);
+	destroyWindow("Base_Image");
 	// ======================================================
-	cout << "Grabbing image..." << endl;
-	Delay(3 * 1000);
+	
+	//Delay(3 * 1000);
 	cout << "Image grabbed, free moving" << endl;
 
 
@@ -162,9 +187,13 @@ int main()
 		
 		cout << "Grabbing image..." << endl;
 		// =================== 相机采集流程 =======================
-
+		my_Cam.Cap_single_image();
+		namedWindow("Seq_Image", CV_WINDOW_NORMAL);
+		imshow("Seq_Image", my_Cam.Current_Mat);
+		waitKey(5000);
+		destroyWindow("Seq_Image");
 		// ======================================================
-		Delay(3 * 1000);
+		// Delay(3 * 1000);
 		// =================== ICP匹配流程 =======================
 
 		// ======================================================
@@ -210,6 +239,9 @@ int main()
 	my_RTDE.RTDE_Send_Stop();
 	// 退出Python的环境
 	Py_Finalize();
+
+	// 释放相机
+	my_Cam.Release_Cam();
 
 	return 0;
 }
