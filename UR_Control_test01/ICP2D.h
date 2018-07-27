@@ -12,26 +12,26 @@ public:
 	ICP2D();
 	~ICP2D();
 
-	int iter_max;			// µü´ú´ÎÊıÉÏÏŞ
-	double iter_thresh;		// ²Ğ²î±ä»¯ÉÏÏŞ
-	int binary_thresh;		// ¶şÖµ»¯ãĞÖµ
+	int iter_max;			// è¿­ä»£æ¬¡æ•°ä¸Šé™
+	double iter_thresh;		// æ®‹å·®å˜åŒ–ä¸Šé™
+	int binary_thresh;		// äºŒå€¼åŒ–é˜ˆå€¼
 
 
 	Mat Image_ref;
 	Mat Image_new;
 
-	// µãÔÆ
+	// ç‚¹äº‘
 	Mat ICP_ref_pts;
 	Mat ICP_new_pts;
 
-	// ½µ²ÉÑùÂÊ
+	// é™é‡‡æ ·ç‡
 	int ref_down_sample_rate;
 	int new_down_sample_rate;
 
-	// ICPº¯Êı
-	Mat R_res, t_res; // »ã×ÜµÄ×îÖÕ½á¹û
-	void ICP_2D(void);
-
+	// ICPå‡½æ•°
+	Mat R_res, t_res; // æ±‡æ€»çš„æœ€ç»ˆç»“æœ
+	void ICP_2D(void);			// ICPè®¡ç®—ä¸»ç¨‹åº
+	void Draw_Contrary(void);	// ç»˜åˆ¶å‰åäºŒè€…çš„è½®å»“ä½ç½®å¯¹æ¯”ï¼ŒåŸºå‡†ç”¨è“è‰²ï¼Œæ–°å›¾ç”¨çº¢è‰²
 private:
 
 	void imPreProcess(void);

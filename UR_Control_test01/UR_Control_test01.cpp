@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "ur_RTDE.h"
 #include "CBasler_Single_Cam_Easy.h"
+#include "ICP2D.h"
 #include <ctime>
 
 using namespace std;
@@ -18,15 +19,27 @@ void Delay(int time)//time*1000为秒数
 
 int main()
 {
+	// 定义两个矩阵
+	Mat Image_Ref_Knife;
+	Mat Image_New_Knife;
+
 	// 启动Python的环境
 	Py_Initialize();
 	// 启动与机器人的连接并逐个测试功能
 
 	// 初始化一个ur_RTDE类
 	ur_RTDE my_RTDE;
-	// 初始化一个CBasler_Single_Cam_Easy
+	// 初始化一个CBasler_Single_Cam_Easy类
 	CBasler_Single_Cam_Easy my_Cam;
-	
+	// 初始化一个ICP2D类
+	ICP2D my_2D_ICP;
+	my_2D_ICP.iter_max = 1000;
+	my_2D_ICP.iter_thresh = 0.001;
+	my_2D_ICP.ref_down_sample_rate = 5;
+	my_2D_ICP.new_down_sample_rate = 5;
+	my_2D_ICP.binary_thresh = 50;
+
+
 	my_RTDE.RTDE_Initialize();
 	my_Cam.Init_Cam();
 	// 建立连接
@@ -127,9 +140,14 @@ int main()
 	// =================== 相机采集流程 ======================= 采集基准图像
 	my_Cam.Cap_single_image();
 	namedWindow("Base_Image", CV_WINDOW_NORMAL);
+	resizeWindow("Base_Image", my_Cam.Current_Mat.cols / 2, my_Cam.Current_Mat.rows / 2);
 	imshow("Base_Image", my_Cam.Current_Mat);
 	waitKey(5000);
 	destroyWindow("Base_Image");
+	// 利用基准图像初始化两个Mat变量
+	Image_Ref_Knife = my_Cam.Current_Mat.clone();
+	Image_New_Knife = my_Cam.Current_Mat.clone();
+	my_2D_ICP.Image_ref = Image_Ref_Knife;
 	// ======================================================
 	
 	//Delay(3 * 1000);
@@ -186,16 +204,19 @@ int main()
 		cout << "Robot has arrived at CAMERA position" << endl;
 		
 		cout << "Grabbing image..." << endl;
-		// =================== 相机采集流程 =======================
+		// =================== 相机采集流程 ======================= 采集新图像
 		my_Cam.Cap_single_image();
 		namedWindow("Seq_Image", CV_WINDOW_NORMAL);
+		resizeWindow("Seq_Image", my_Cam.Current_Mat.cols / 2, my_Cam.Current_Mat.rows / 2);
 		imshow("Seq_Image", my_Cam.Current_Mat);
 		waitKey(5000);
 		destroyWindow("Seq_Image");
+		my_Cam.Current_Mat.copyTo(Image_New_Knife);
 		// ======================================================
 		// Delay(3 * 1000);
 		// =================== ICP匹配流程 =======================
-
+		my_2D_ICP.Image_new = Image_New_Knife;
+		my_2D_ICP.Draw_Contrary();
 		// ======================================================
 		
 		cout << "Image grabbed and processed, free moving" << endl;
@@ -240,8 +261,7 @@ int main()
 	// 退出Python的环境
 	Py_Finalize();
 
-	// 释放相机
-	my_Cam.Release_Cam();
+	
 
 	return 0;
 }

@@ -15,30 +15,30 @@ void ICP2D::ICP_2D(void)
 {
 	imPreProcess();
 
-	float pre_err = FLT_MAX;	// µü´úĞèÒªµÄÎó²îÁ¿´æ´¢1
-	float now_err = 0;			// µü´úĞèÒªµÄÎó²îÁ¿´æ´¢2
-	float delta_err;			// ÊÕÁ²ÅĞ¶¨ÒÀ¾İ
-	Mat res_ind, res_dist;		// K-D Tree ²éÕÒ½á¹û·µ»ØÖµ
-	int res_ind_int = 0;		// ²éÕÒË÷ÒıÌáÈ¡
+	float pre_err = FLT_MAX;	// è¿­ä»£éœ€è¦çš„è¯¯å·®é‡å­˜å‚¨1
+	float now_err = 0;			// è¿­ä»£éœ€è¦çš„è¯¯å·®é‡å­˜å‚¨2
+	float delta_err;			// æ”¶æ•›åˆ¤å®šä¾æ®
+	Mat res_ind, res_dist;		// K-D Tree æŸ¥æ‰¾ç»“æœè¿”å›å€¼
+	int res_ind_int = 0;		// æŸ¥æ‰¾ç´¢å¼•æå–
 	float near_x, near_y;
 	Mat nearest_pts_from_ref = Mat(ICP_new_pts.rows, 2, CV_32FC1);
-	Mat mean_new = Mat(1, 2, CV_32FC1);		// ICP ¼ÆËã¹ı³ÌÖĞÇó½â¸÷¸ö²½ÖèµÄR¡¢tµÄÖĞ¼äÁ¿£¬´ıÆ¥ÅäµãÔÆµÄÖØĞÄ
-	Mat mean_near = Mat(1, 2, CV_32FC1);	// ICP ¼ÆËã¹ı³ÌÖĞÇó½â¸÷¸ö²½ÖèµÄR¡¢tµÄÖĞ¼äÁ¿£¬µü´úÖĞµãÔÆµÄÖØĞÄ
-	Mat AXY, BXY; // ÖĞ¼äÁ¿
-	Mat H, U, S, Vt; // ÖĞ¼äÁ¿
+	Mat mean_new = Mat(1, 2, CV_32FC1);		// ICP è®¡ç®—è¿‡ç¨‹ä¸­æ±‚è§£å„ä¸ªæ­¥éª¤çš„Rã€tçš„ä¸­é—´é‡ï¼Œå¾…åŒ¹é…ç‚¹äº‘çš„é‡å¿ƒ
+	Mat mean_near = Mat(1, 2, CV_32FC1);	// ICP è®¡ç®—è¿‡ç¨‹ä¸­æ±‚è§£å„ä¸ªæ­¥éª¤çš„Rã€tçš„ä¸­é—´é‡ï¼Œè¿­ä»£ä¸­ç‚¹äº‘çš„é‡å¿ƒ
+	Mat AXY, BXY; // ä¸­é—´é‡
+	Mat H, U, S, Vt; // ä¸­é—´é‡
 	Mat Mid_eye = Mat::eye(2, 2, CV_32FC1);
 	Mat temp_new_pts;
-	Mat R, t; // ½×¶Î¼ÆËã½á¹û
+	Mat R, t; // é˜¶æ®µè®¡ç®—ç»“æœ
 	
 	R_res = Mat::eye(2, 2, CV_32FC1);
 	t_res = Mat::zeros(2, 1, CV_32FC1);
 
-	// ÎªÁË±£ÁôÃ¿¸önew_pts£¬¸´ÖÆ¾ØÕó ICP_new_pts ÖÁ ICP_new_pts_origin
+	// ä¸ºäº†ä¿ç•™æ¯ä¸ªnew_ptsï¼Œå¤åˆ¶çŸ©é˜µ ICP_new_pts è‡³ ICP_new_pts_origin
 	Mat ICP_new_pts_origin;
 	ICP_new_pts.copyTo(ICP_new_pts_origin);
 
 
-	// 2.2 µü´ú¿ªÊ¼
+	// 2.2 è¿­ä»£å¼€å§‹
 	for (int iter_num = 0; iter_num < iter_max; iter_num++)
 	{
 		now_err = 0;
@@ -47,7 +47,7 @@ void ICP2D::ICP_2D(void)
 		for (int i = 0; i < ICP_new_pts.rows; i++)
 		{
 			My_Kdtree.knnSearch(ICP_new_pts.row(i), res_ind, res_dist, 1, flann::SearchParams(-1));
-			res_ind_int = res_ind.at<int>(0, 0); // È·ÈÏ¹ı±äÁ¿ÀàĞÍÓ¦¸ÃÊÇ¶ÔµÄ
+			res_ind_int = res_ind.at<int>(0, 0); // ç¡®è®¤è¿‡å˜é‡ç±»å‹åº”è¯¥æ˜¯å¯¹çš„
 			near_x = ICP_ref_pts.at<float>(res_ind_int, 0);
 			near_y = ICP_ref_pts.at<float>(res_ind_int, 1);
 			nearest_pts_from_ref.at<float>(i, 0) = near_x;
@@ -71,7 +71,7 @@ void ICP2D::ICP_2D(void)
 		else
 			pre_err = now_err;
 
-		// ÇóÖØĞÄ£¬×¢Òâ£ºcv::mean µÄ·µ»ØÖµÊÇÒ»¸ö cv::scalar ËüÓÉËÄ¸öÔªËØ¹¹³É£¬µ«ÊÇÎÒÃÇÖ»ÓÃµ½µÚÒ»¸ö£¬ËùÒÔºóÃæ¶àÁË¸ö[0]
+		// æ±‚é‡å¿ƒï¼Œæ³¨æ„ï¼šcv::mean çš„è¿”å›å€¼æ˜¯ä¸€ä¸ª cv::scalar å®ƒç”±å››ä¸ªå…ƒç´ æ„æˆï¼Œä½†æ˜¯æˆ‘ä»¬åªç”¨åˆ°ç¬¬ä¸€ä¸ªï¼Œæ‰€ä»¥åé¢å¤šäº†ä¸ª[0]
 		mean_new.at<float>(0, 0) = mean(ICP_new_pts.col(0))[0];
 		mean_new.at<float>(0, 1) = mean(ICP_new_pts.col(1))[0];
 		mean_near.at<float>(0, 0) = mean(nearest_pts_from_ref.col(0))[0];
@@ -87,7 +87,7 @@ void ICP2D::ICP_2D(void)
 
 #endif
 
-		// ËùÓĞµã°´ÖØĞÄ¹éÒ»»¯
+		// æ‰€æœ‰ç‚¹æŒ‰é‡å¿ƒå½’ä¸€åŒ–
 		AXY = ICP_new_pts - repeat(mean_new, ICP_new_pts.rows, 1);
 		BXY = nearest_pts_from_ref - repeat(mean_near, nearest_pts_from_ref.rows, 1);
 
@@ -101,7 +101,7 @@ void ICP2D::ICP_2D(void)
 
 #endif
 
-		// Çó³ö´ıSVD·Ö½âµÄH¾ØÕó
+		// æ±‚å‡ºå¾…SVDåˆ†è§£çš„HçŸ©é˜µ
 		H = AXY.t() * BXY;
 		SVD::compute(H, S, U, Vt);
 
@@ -157,38 +157,83 @@ void ICP2D::ICP_2D(void)
 	cout << now_err << endl;
 }
 
-void ICP2D::imPreProcess(void)
+void ICP2D::Draw_Contrary(void)
 {
-	// Step1. ¶şÖµ»¯
+	// Debug 
+	imwrite("Im_ref.bmp", Image_ref);
+	imwrite("Im_new.bmp", Image_new);
+
+	// Step1. äºŒå€¼åŒ–
 	Mat T_ref, T_new;
 	threshold(Image_ref, T_ref, binary_thresh, 255, THRESH_BINARY);
 	threshold(Image_new, T_new, binary_thresh, 255, THRESH_BINARY);
 
-	// Step2. ±ßÔµ¼ì²â
+	// Debug 
+	imwrite("T_ref.bmp", T_ref);
+	imwrite("T_new.bmp", T_new);
+
+	// Step2. è¾¹ç¼˜æ£€æµ‹
 	Mat E_ref, E_new;
 	int edge_thresh = 50;
 	Canny(T_ref, E_ref, edge_thresh, edge_thresh * 3);
 	Canny(T_new, E_new, edge_thresh, edge_thresh * 3);
 
-	// Step3. ±ßÔµµãÔÆÌáÈ¡
+	// Debug 
+	imwrite("Edge_ref.bmp", E_ref);
+	imwrite("Edge_new.bmp", E_new);
+
+	Mat Show_Image_Color = Mat(E_ref.rows, E_ref.cols, CV_8UC3);
+
+	// ä¸ºè¿™ä¸ª3é€šé“çŸ©é˜µèµ‹å€¼ï¼Œå‡è®¾æ˜¯BGR
+	for (int i = 0; i < E_ref.rows; i++)
+	{
+		for (int j = 0; j < E_ref.cols; j++)
+		{
+			Show_Image_Color.at<Vec3b>(i, j)[0] = E_ref.at<uchar>(i, j);
+			Show_Image_Color.at<Vec3b>(i, j)[1] = 0;
+			Show_Image_Color.at<Vec3b>(i, j)[2] = E_new.at<uchar>(i, j);
+		}
+	}
+
+	namedWindow("Contrast of Ref(blue) and New(red)", CV_WINDOW_NORMAL);
+	resizeWindow("Contrast of Ref(blue) and New(red)", E_ref.cols / 2, E_ref.rows / 2);
+	imshow("Contrast of Ref(blue) and New(red)", Show_Image_Color);
+	waitKey(9000);
+	destroyWindow("Contrast of Ref(blue) and New(red)");
+}
+
+void ICP2D::imPreProcess(void)
+{
+	// Step1. äºŒå€¼åŒ–
+	Mat T_ref, T_new;
+	threshold(Image_ref, T_ref, binary_thresh, 255, THRESH_BINARY);
+	threshold(Image_new, T_new, binary_thresh, 255, THRESH_BINARY);
+
+	// Step2. è¾¹ç¼˜æ£€æµ‹
+	Mat E_ref, E_new;
+	int edge_thresh = 50;
+	Canny(T_ref, E_ref, edge_thresh, edge_thresh * 3);
+	Canny(T_new, E_new, edge_thresh, edge_thresh * 3);
+
+	// Step3. è¾¹ç¼˜ç‚¹äº‘æå–
 	vector<Point> ref_pt_vec;
 	vector<Point> new_pt_vec;
 	for (int i = 0; i < E_ref.rows; i++)
 	{
 		for (int j = 0; j < E_ref.cols; j++)
 		{
-			if (E_ref.at<uchar>(i, j) != 0) // Õâ¸öµØ·½Õâ¸öcharÇëÑéÖ¤
+			if (E_ref.at<uchar>(i, j) != 0) // è¿™ä¸ªåœ°æ–¹è¿™ä¸ªcharè¯·éªŒè¯
 			{
 				ref_pt_vec.push_back(Point(j, i));
 			}
-			if (E_new.at<uchar>(i, j) != 0) // Õâ¸öµØ·½Õâ¸öcharÇëÑéÖ¤
+			if (E_new.at<uchar>(i, j) != 0) // è¿™ä¸ªåœ°æ–¹è¿™ä¸ªcharè¯·éªŒè¯
 			{
 				new_pt_vec.push_back(Point(j, i));
 			}
 		}
 	}
 
-	// Step4. ½µ²ÉÑù
+	// Step4. é™é‡‡æ ·
 	int ref_pt_num, new_pt_num;
 	ref_pt_num = ref_pt_vec.size();
 	new_pt_num = new_pt_vec.size();
@@ -208,7 +253,7 @@ void ICP2D::imPreProcess(void)
 	}
 
 
-	// Step5. ½¨Á¢K-D tree
+	// Step5. å»ºç«‹K-D tree
 	My_Kdtree.build(ICP_ref_pts, flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
 
 	return;
