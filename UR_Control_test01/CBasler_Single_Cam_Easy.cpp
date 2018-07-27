@@ -11,8 +11,8 @@ CBasler_Single_Cam_Easy::CBasler_Single_Cam_Easy()
 CBasler_Single_Cam_Easy::~CBasler_Single_Cam_Easy()
 {
 	// 释放相机
-	if (if_init == true)
-		Release_Cam();
+	/*if (if_init == true)
+		Release_Cam();*/
 }
 
 bool CBasler_Single_Cam_Easy::Init_Cam(void)
