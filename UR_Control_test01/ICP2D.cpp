@@ -159,28 +159,17 @@ void ICP2D::ICP_2D(void)
 
 void ICP2D::Draw_Contrary(void)
 {
-	// Debug 
-	imwrite("Im_ref.bmp", Image_ref);
-	imwrite("Im_new.bmp", Image_new);
 
 	// Step1. 二值化
 	Mat T_ref, T_new;
 	threshold(Image_ref, T_ref, binary_thresh, 255, THRESH_BINARY);
 	threshold(Image_new, T_new, binary_thresh, 255, THRESH_BINARY);
 
-	// Debug 
-	imwrite("T_ref.bmp", T_ref);
-	imwrite("T_new.bmp", T_new);
-
 	// Step2. 边缘检测
 	Mat E_ref, E_new;
 	int edge_thresh = 50;
 	Canny(T_ref, E_ref, edge_thresh, edge_thresh * 3);
 	Canny(T_new, E_new, edge_thresh, edge_thresh * 3);
-
-	// Debug 
-	imwrite("Edge_ref.bmp", E_ref);
-	imwrite("Edge_new.bmp", E_new);
 
 	Mat Show_Image_Color = Mat(E_ref.rows, E_ref.cols, CV_8UC3);
 

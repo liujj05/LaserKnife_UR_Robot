@@ -217,6 +217,7 @@ int main()
 		// =================== ICP匹配流程 =======================
 		my_2D_ICP.Image_new = Image_New_Knife;
 		my_2D_ICP.Draw_Contrary();
+		my_2D_ICP.ICP_2D();
 		// ======================================================
 		
 		cout << "Image grabbed and processed, free moving" << endl;
