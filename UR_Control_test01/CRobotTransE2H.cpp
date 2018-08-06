@@ -5,12 +5,13 @@
 CRobotTransE2H::CRobotTransE2H()
 {
 	cam_A = Mat::zeros(3, 3, CV_64FC1);
-	// ========按顺序填写内参标定数据==========
+	// ========按顺序填写内参标定数据========== 结合标定进行修改
 	cam_A.at<double>(0, 0) = 4211.1;	cam_A.at<double>(0, 2) = 617.1369;
 	cam_A.at<double>(1, 1) = 4213.3;	cam_A.at<double>(1, 2) = 498.0212;
 	cam_A.at<double>(2, 2) = 1;
 	// ====================================
 
+	// ========手眼标定结果======== 结合标定数据修改
 	T_C_to_0 = Mat::zeros(4, 4, CV_64FC1);
 	T_C_to_0.at<double>(0, 0) = 0.0815;		T_C_to_0.at<double>(0, 1) = 0.9954;		T_C_to_0.at<double>(0, 2) = 0.0510;
 	T_C_to_0.at<double>(1, 0) = 0.9963;		T_C_to_0.at<double>(1, 1) =-0.0800;		T_C_to_0.at<double>(1, 2) =-0.0299;
@@ -22,6 +23,7 @@ CRobotTransE2H::CRobotTransE2H()
 
 	// =====================================
 
+	// =================测量位置的6系矩阵===================
 	T_6_to_0_test = Mat::zeros(4, 4, CV_64FC1);
 	T_6_to_0_test.at<double>(0, 0) = 0.0696;		T_6_to_0_test.at<double>(0, 1) = 0.0385;		T_6_to_0_test.at<double>(0, 2) = 0.9968;
 	T_6_to_0_test.at<double>(1, 0) = 0.7061;		T_6_to_0_test.at<double>(1, 1) = 0.7039;		T_6_to_0_test.at<double>(1, 2) =-0.0765;
@@ -32,7 +34,7 @@ CRobotTransE2H::CRobotTransE2H()
 	T_6_to_0_test.at<double>(3, 3) = 1;
 
 	// =====================================
-
+	// =============测量位置的外参数矩阵=============
 	T_Cal_to_C = Mat::zeros(4, 4, CV_64FC1);
 	T_Cal_to_C.at<double>(0, 0) = 0.0671;		T_Cal_to_C.at<double>(0, 1) = -0.9973;		T_Cal_to_C.at<double>(0, 2) = 0.0286;
 	T_Cal_to_C.at<double>(1, 0) = 0.9974;		T_Cal_to_C.at<double>(1, 1) = 0.0663;		T_Cal_to_C.at<double>(1, 2) = -0.0293;
@@ -54,6 +56,8 @@ void CRobotTransE2H::Trans_Teach_Vec(void)
 	Mat T60_old;
 	Build_T60_from_Vec(input_origin_Teach_Vec6, T60_old);
 
+	/*
+	//--输出debug
 	cout << "T60_old before 155" << endl;
 	cout << T60_old << endl;
 	
@@ -66,40 +70,55 @@ void CRobotTransE2H::Trans_Teach_Vec(void)
 
 	cout << "T60_old after 155" << endl;
 	cout << T60_old << endl;
+	*/
 
 	// Step2 转换该 T60
 	Build_H();
 
+	/*
 	cout << "Temp_H" << endl;
 	cout << Temp_H << endl;
+	*/
 
 	Build_T_Ki_to_Ks();
 
+	/*
 	cout << "T_Ki_to_Ks" << endl;
 	cout << T_Ki_to_Ks << endl;
 
 	cout << "If T_Ki_to_Ks is Trans Matrix?" << endl;
+	*/
+
 	Mat test_mat = T_Ki_to_Ks(Range(0, 3), Range(0, 3));
+	
+	/*
 	cout << test_mat << endl;
 	cout << test_mat.t() << endl;
+	*/
 	Mat test_mat2 = test_mat * test_mat.t();
+	
+	/*
 	cout << test_mat2 << endl;
-
+	*/
 
 	Build_T_Ks_to_6();
 
+	/*
 	cout << "T_Ks_to_6" << endl;
 	cout << T_Ks_to_6 << endl;
-
+	*/
 
 	Mat T_Ki_to_6 = T_Ks_to_6 * T_Ki_to_Ks;
 	Mat T60_new = T60_old * T_Ks_to_6 * T_Ki_to_6.inv();
 
+	/*
 	cout << "T60_new" << endl;
 	cout << T60_new << endl;
 
 	// Debug Step
 	T60_new = T60_new * T_6long_to_6short;
+
+	*/
 
 	// Step3 将新 T60 转化为向量
 	Build_Vec_from_T60(T60_new);
@@ -163,23 +182,29 @@ void CRobotTransE2H::Build_T_Ki_to_Ks(void)
 	T_Ks_to_Cal.at<double>(2, 3) = thickness_of_cal_board;
 	// 考虑了标定板的厚度，注意，标定板的Z轴朝下！
 
+	/*
 	cout << "T_Cal_to_C" << endl;
 	cout << T_Cal_to_C << endl;
+	*/
 
 	T_Ks_to_C = T_Cal_to_C * T_Ks_to_Cal;
 
+	/*
 	cout << "T_Ks_to_C" << endl;
 	cout << T_Ks_to_C << endl;
+	*/
 
-	// 为了和MATLAB对比，这里增加一步
+	// 为了和MATLAB对比，这里增加一步 - 实际上这一步也是要加上的，但是针对谁做SVD需要讨论
 	Mat T_Ki_to_C = Temp_H.inv() * T_Ks_to_C;
 	Mat R_Ki_to_C = T_Ki_to_C(Range(0, 3), Range(0, 3));
 	Mat U, S, V;
 	SVD::compute(R_Ki_to_C, S, U, V);
 	R_Ki_to_C = U * V;
 
+	/*
 	cout << "R_Ki_to_C" << endl;
 	cout << R_Ki_to_C << endl;
+	*/
 
 	R_Ki_to_C.copyTo(T_Ki_to_C(Range(0, 3), Range(0, 3)));
 

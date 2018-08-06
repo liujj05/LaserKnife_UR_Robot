@@ -21,36 +21,6 @@ void Delay(int time)//time*1000为秒数
 int main()
 {
 	//==================================================================================
-	// 测试用
-	CRobotTransE2H my_Eye2Hand;
-
-	my_Eye2Hand.input_origin_Teach_Vec6[0] = 856;
-	my_Eye2Hand.input_origin_Teach_Vec6[1] = -42.68;
-	my_Eye2Hand.input_origin_Teach_Vec6[2] = 243.71;
-	my_Eye2Hand.input_origin_Teach_Vec6[3] = 1.501;
-	my_Eye2Hand.input_origin_Teach_Vec6[4] = -3.8230;
-	my_Eye2Hand.input_origin_Teach_Vec6[5] = 3.0140;
-
-	my_Eye2Hand.RI = Mat::zeros(2, 2, CV_64FC1);
-	my_Eye2Hand.tI = Mat::zeros(2, 1, CV_64FC1);
-	my_Eye2Hand.RI.at<double>(0, 0) = 0.9972;
-	my_Eye2Hand.RI.at<double>(0, 1) = 0.0752;
-	my_Eye2Hand.RI.at<double>(1, 0) = -0.0752;
-	my_Eye2Hand.RI.at<double>(1, 1) = 0.9972;
-	my_Eye2Hand.tI.at<double>(0, 0) = 119.6843;
-	my_Eye2Hand.tI.at<double>(1, 0) = 73.1479;
-
-	my_Eye2Hand.Trans_Teach_Vec();
-
-	cout << my_Eye2Hand.output_new_Teach_Vec6[0] << endl;
-	cout << my_Eye2Hand.output_new_Teach_Vec6[1] << endl;
-	cout << my_Eye2Hand.output_new_Teach_Vec6[2] << endl;
-	cout << my_Eye2Hand.output_new_Teach_Vec6[3] << endl;
-	cout << my_Eye2Hand.output_new_Teach_Vec6[4] << endl;
-	cout << my_Eye2Hand.output_new_Teach_Vec6[5] << endl;
-
-	return 0;
-	//==================================================================================
 	// 定义两个矩阵
 	Mat Image_Ref_Knife;
 	Mat Image_New_Knife;
@@ -80,23 +50,6 @@ int main()
 	
 	UINT32 input_ctrl_flag = 0;
 	UINT32 gui_ctrl_int = 0;
-
-	// Test
-	/*
-
-	namedWindow("TestImage");
-	imshow("TestImage", my_Cam.Current_Mat);
-	waitKey(9000);
-	destroyWindow("TestImage");
-
-	my_Cam.Cap_single_image();
-	
-	namedWindow("TestImage");
-	imshow("TestImage", my_Cam.Current_Mat);
-	waitKey(9000);
-	destroyWindow("TestImage");
-
-	my_Cam.Release_Cam();*/
 
 	// Step1 机器人从待命状态启动
 	input_ctrl_flag = 1;
