@@ -70,7 +70,7 @@ int main()
 			if (my_RTDE2.state_res & (0x01 << i))	// 提取对应位数，是1证明赋值完毕
 				break;
 		}
-		cout << "---- point " << i << " received, next..." << endl;
+		cout << "---- point " << i << " received" << endl;
 	}
 	my_RTDE2.RTDE_Send_Stop();
 	Py_Finalize();
