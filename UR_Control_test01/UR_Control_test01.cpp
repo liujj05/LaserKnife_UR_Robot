@@ -29,7 +29,7 @@ void Delay(int time)//time*1000为秒数
 
 int main()
 {
-	//=============== Debug =================
+	//=============== Debug ================= // 该版本对应UR5上面的 laser_pose_seq_download01.urp
 	// 启动Python的环境
 	Py_Initialize();
 	// 初始化一个ur_RTDE类
@@ -76,6 +76,10 @@ int main()
 	Py_Finalize();
 	getchar();
 	return 0;
+	//=======================================
+	//
+	//  ----  正式程序  ----
+	//
 	//=======================================
 	// == 精确计时 ==
 	LARGE_INTEGER freq;
