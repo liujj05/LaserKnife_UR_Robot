@@ -8,7 +8,16 @@
 #include <ctime>
 #include "CRobotTransE2H.h"
 
+#include <windows.h>					// 精确计时
+
 using namespace std;
+using namespace cv;
+
+// == 精确计时宏定义 ==
+#define TIMER_START QueryPerformanceCounter(&start_t)
+#define TIMER_STOP QueryPerformanceCounter(&stop_t);\
+exe_time = 1e3*(stop_t.QuadPart - start_t.QuadPart) / freq.QuadPart
+// ==================
 
 // 用于调试
 void Delay(int time)//time*1000为秒数 
@@ -20,6 +29,59 @@ void Delay(int time)//time*1000为秒数
 
 int main()
 {
+	//=============== Debug =================
+	// 启动Python的环境
+	Py_Initialize();
+	// 初始化一个ur_RTDE类
+	ur_RTDE my_RTDE2;
+	my_RTDE2.RTDE_Initialize();			// RTDE 通信初始化
+	my_RTDE2.RTDE_Send_Start();			// 建立 RTDE 连接
+	// 初始化标志位
+	my_RTDE2.RTDE_Send_BIT32(0);
+	Delay(100);
+	//while (1)
+	//{
+	//	my_RTDE2.RTDE_Recv_BIT32();				// 接收机器人发送的标志位
+	//	Delay(100);
+	//}
+	// 读入示教点
+	CRobotTransE2H my_robot_trans2;
+	my_robot_trans2.Load_Origin_Teach_Pts("teach_pose.txt");
+	// 生成新示教点并发送
+	double new_teach_pose[6];	// 6自由度
+	int pt_num = 4;				// 4示教点
+	double y_offset = 0.02;		// UR端的单位貌似是m
+	// 发送示教点
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			new_teach_pose[j] = my_robot_trans2.Origin_Teach_Pts.at<double>(i, j);
+		}
+		new_teach_pose[1] = new_teach_pose[1] + y_offset;
+		my_RTDE2.RTDE_Send_POINT(new_teach_pose, 6); // 发送新示教点
+		Delay(100);									// 额外给点时间确保发送完成
+		my_RTDE2.RTDE_Send_BIT32(0x01<<i);			// 通知机器人收第i个点
+		cout << "Send point " << i << " over, waiting..." << endl;
+		while (1)
+		{
+			my_RTDE2.RTDE_Recv_BIT32();				// 接收机器人发送的标志位
+			Delay(100);
+			if (my_RTDE2.state_res & (0x01 << i))	// 提取对应位数，是1证明赋值完毕
+				break;
+		}
+		cout << "---- point " << i << " received, next..." << endl;
+	}
+	my_RTDE2.RTDE_Send_Stop();
+	Py_Finalize();
+	getchar();
+	return 0;
+	//=======================================
+	// == 精确计时 ==
+	LARGE_INTEGER freq;
+	LARGE_INTEGER start_t, stop_t;
+	double exe_time;
+	QueryPerformanceFrequency(&freq);
 	//==================================================================================
 	// 定义两个矩阵
 	Mat Image_Ref_Knife;
@@ -41,19 +103,46 @@ int main()
 	my_2D_ICP.new_down_sample_rate = 5;
 	my_2D_ICP.binary_thresh = 50;
 
+	// 初始化一个E2H类
+	CRobotTransE2H my_robot_trans;
 
-	my_RTDE.RTDE_Initialize();
-	my_Cam.Init_Cam();
-	// 建立连接
+	// 初始化各个功能模块
+	my_RTDE.RTDE_Initialize();			// RTDE 通信初始化
+	my_Cam.Init_Cam();					// Basler 相机初始化
+	// == 采集 new 图像（新匹配）来初始化 Image_New_Knife ==
+	my_Cam.Cap_single_image();
+	Image_New_Knife = my_Cam.Current_Mat.clone();
+	// ======================================================
+
+	// ==== 读入初始化数据 ====
+	// #1 读入基准图像
+	try
+	{
+		Image_Ref_Knife = imread("base_knife.bmp", IMREAD_UNCHANGED);
+	}
+	catch(...)
+	{
+		cout << "# Error: Cannot open file: base_knife.bmp!" << endl;
+		Py_Finalize();
+		getchar();
+		return 0;
+	}
+	my_2D_ICP.Image_ref = Image_Ref_Knife;
+	// #2 读入示教点
+	my_robot_trans.Load_Origin_Teach_Pts("teach_pose.txt");
+	
+
+	// 建立 RTDE 连接
 	my_RTDE.RTDE_Send_Start();
 
-	
+
+
 	UINT32 input_ctrl_flag = 0;
 	UINT32 gui_ctrl_int = 0;
 
 	// Step1 机器人从待命状态启动
 	input_ctrl_flag = 1;
-	cout << "Start Robot? (1--YES, other--NO)" << endl;
+	cout << "# Start Robot? (1--YES, other--NO)" << endl;
 	cin >> input_ctrl_flag;
 
 	if (input_ctrl_flag != 1)
@@ -72,172 +161,52 @@ int main()
 
 	my_RTDE.RTDE_Send_BIT32(input_ctrl_flag); // 发送启动指令：1
 
-	// 等待机器人通知：移动到准备抓取的位置
+	// Step2 等待机器人通知：移动到测量位置
+	// 第一版的 Delay 延时程序会出现一个问题：无法及时与机器人进行交互（机器人置位后相当长时间内PC探测不到标志位改变）
+	// 本次首先测试快速连续调用接收函数看是否能提高响应速度
+
+	TIMER_START; // 计时-观测响应时间
 	while (true)
 	{
 		my_RTDE.RTDE_Recv_BIT32();
-		Delay(2 * 1000);
-		cout << "UR Control Waiting... Flag 0 --- " << my_RTDE.state_res << endl;
+		// Delay(2 * 1000); 
+		//cout << "UR Control Waiting... Flag 0 --- " << my_RTDE.state_res << endl;
 		if (my_RTDE.state_res == 1)
 		{
-			cout << "UR Control Waiting... break" << endl;
+			cout << "++++ Flag1 change detected! " << endl;
 			break;
 		}
 	}
-	cout << "Robot has arrived at CATCH position" << endl;
-
-	cout << "Take the knife to CAMERA position? (1--YES, other--NO)" << endl;
-	cin >> gui_ctrl_int;
-
-	if (gui_ctrl_int != 1)
-	{
-		input_ctrl_flag = 0;
-		my_RTDE.RTDE_Send_BIT32(input_ctrl_flag);
-		Delay(1 * 1000);
-		my_RTDE.RTDE_Send_Stop();
-
-		// 退出Python的环境
-		Py_Finalize();
-
-		return 0;
-	}
-
-	input_ctrl_flag = 3;
-	my_RTDE.RTDE_Send_BIT32(input_ctrl_flag); // 发送移动至图像采集位置命令 + 进入循环命令 ：2 + 1
-
-	// 等待机器人通知：到达图像采集位置
-	while (true)
-	{
-		my_RTDE.RTDE_Recv_BIT32();
-		Delay(2 * 1000);
-		cout << "UR Control Waiting... Flag 1 --- " << my_RTDE.state_res << endl;
-		if (my_RTDE.state_res == 2)
-		{
-			cout << "UR Control Waiting... break" << endl;
-			break;
-		}
-	}
-
-	cout << "Robot has arrived at CAMERA position" << endl;
+	TIMER_STOP;
+	cout << "++++ Robot has arrived at Photo position in " << exe_time << " ms" << endl;
 	
-	cout << "Grabbing image..." << endl;
+	// Step3 拍摄+测量
 	
-	// =================== 相机采集流程 ======================= 采集基准图像
+	cout << "# Grabbing image..." << endl;
+	
+	// == 采集 new 图像（新匹配）来初始化 Image_New_Knife ==
 	my_Cam.Cap_single_image();
-	namedWindow("Base_Image", CV_WINDOW_NORMAL);
-	resizeWindow("Base_Image", my_Cam.Current_Mat.cols / 2, my_Cam.Current_Mat.rows / 2);
-	imshow("Base_Image", my_Cam.Current_Mat);
-	waitKey(5000);
-	destroyWindow("Base_Image");
-	// 利用基准图像初始化两个Mat变量
-	Image_Ref_Knife = my_Cam.Current_Mat.clone();
-	Image_New_Knife = my_Cam.Current_Mat.clone();
-	my_2D_ICP.Image_ref = Image_Ref_Knife;
+	// 首次采集生成存储空间后，可以用copyTo，不额外重新分配空间
+	my_Cam.Current_Mat.copyTo(Image_New_Knife);
 	// ======================================================
 	
-	//Delay(3 * 1000);
-	cout << "Image grabbed, free moving" << endl;
+	cout << "# Image grabbed, matching..." << endl;
 
-
-	input_ctrl_flag = 4;
-	my_RTDE.RTDE_Send_BIT32(input_ctrl_flag);	// 发送自由移动命令：4
-
-	// 等待机器人自由运动完毕
-	while (true)
-	{
-		my_RTDE.RTDE_Recv_BIT32();
-		Delay(2 * 1000);
-		cout << "UR Control Waiting... Flag 2 --- " << my_RTDE.state_res << endl;
-		if (my_RTDE.state_res == 4)
-		{
-			cout << "UR Control Waiting... break" << endl;
-			break;
-		}
-	}
-
-	// ====================== 进入大循环 ==========================
-
-	while (true)
-	{
-		cout << "Take the knife to CAMERA position? (1--YES, other--NO)" << endl;
-		cin >> gui_ctrl_int;
-
-		if (gui_ctrl_int != 1)
-		{
-			// 此时机器人自由运动完成，正在执行：wait: read_input_boolean_register(1) == true
-			input_ctrl_flag = 2;
-			my_RTDE.RTDE_Send_BIT32(input_ctrl_flag);
-			Delay(1 * 1000);
-			break;
-		}
-
-		input_ctrl_flag = 3;
-		my_RTDE.RTDE_Send_BIT32(input_ctrl_flag); // 发送移动至图像采集位置命令 + 进入循环命令 ：2 + 1
-
-		// 等待机器人通知：到达图像采集位置
-		while (true)
-		{
-			my_RTDE.RTDE_Recv_BIT32();
-			Delay(2 * 1000);
-			cout << "UR Control Waiting... Flag 1 --- " << my_RTDE.state_res << endl;
-			if (my_RTDE.state_res == 2)
-			{
-				cout << "UR Control Waiting... break" << endl;
-				break;
-			}
-		}
-		cout << "Robot has arrived at CAMERA position" << endl;
+	// ICP 匹配	
+	// =================== ICP匹配流程 =======================
+	my_2D_ICP.Image_new = Image_New_Knife;
+	// my_2D_ICP.Draw_Contrary();  // 这一句可以取消注释看一下当前刀具和基准刀具的差别
+	my_2D_ICP.ICP_2D();
+	// ======================================================
 		
-		cout << "Grabbing image..." << endl;
-		// =================== 相机采集流程 ======================= 采集新图像
-		my_Cam.Cap_single_image();
-		namedWindow("Seq_Image", CV_WINDOW_NORMAL);
-		resizeWindow("Seq_Image", my_Cam.Current_Mat.cols / 2, my_Cam.Current_Mat.rows / 2);
-		imshow("Seq_Image", my_Cam.Current_Mat);
-		waitKey(5000);
-		destroyWindow("Seq_Image");
-		my_Cam.Current_Mat.copyTo(Image_New_Knife);
-		// ======================================================
-		// Delay(3 * 1000);
-		// =================== ICP匹配流程 =======================
-		my_2D_ICP.Image_new = Image_New_Knife;
-		my_2D_ICP.Draw_Contrary();
-		my_2D_ICP.ICP_2D();
-		// ======================================================
-		
-		cout << "Image grabbed and processed, free moving" << endl;
 
+	// Step5 根据 ICP 结果改造示教点
+	// Step5.1 载入示教点 （已经在初始化做过）
+	// Step5.2 载入ICP结果
+	my_robot_trans.RI = my_2D_ICP.R_res;
+	my_robot_trans.tI = my_2D_ICP.t_res;
+	// Step5.3 计算所有示教点并传输进入UR机器人
 
-		input_ctrl_flag = 4;
-		my_RTDE.RTDE_Send_BIT32(input_ctrl_flag); // 发送自由移动命令：4
-
-		// 等待机器人自由运动完毕
-		while (true)
-		{
-			my_RTDE.RTDE_Recv_BIT32();
-			Delay(2 * 1000);
-			cout << "UR Control Waiting... Flag 2 --- " << my_RTDE.state_res << endl;
-			if (my_RTDE.state_res == 4)
-			{
-				cout << "UR Control Waiting... break" << endl;
-				break;
-			}
-		}
-
-	}
-
-	// 确定机器人从循环中退出
-	while (true)
-	{
-		my_RTDE.RTDE_Recv_BIT32();
-		Delay(2 * 1000);
-		cout << "UR Control Waiting... Flag 1 --- " << my_RTDE.state_res << endl;
-		if (my_RTDE.state_res == 0)
-		{
-			cout << "UR Control Waiting... break" << endl;
-			break;
-		}
-	}
 
 	input_ctrl_flag = 0;
 	my_RTDE.RTDE_Send_BIT32(input_ctrl_flag);

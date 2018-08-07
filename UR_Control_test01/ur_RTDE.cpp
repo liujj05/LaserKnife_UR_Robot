@@ -146,15 +146,14 @@ void ur_RTDE::RTDE_Send_POINT(double *pt_seq, int pt_num)
             input_str,
             PyFloat_FromDouble(pt_seq[i])
         );
-
-        PyObject *tuple_setp = PyTuple_New(1);
-        Py_INCREF(setp);
-        PyTuple_SetItem(tuple_setp, 0, setp);
-
-        PyEval_CallObject(
-			PyObject_GetAttrString(pInstance_con, "send"),
-			tuple_setp);
     }
+	PyObject *tuple_setp = PyTuple_New(1);
+	Py_INCREF(setp);
+	PyTuple_SetItem(tuple_setp, 0, setp);
+
+	PyEval_CallObject(
+		PyObject_GetAttrString(pInstance_con, "send"),
+		tuple_setp);
 }
 
 void ur_RTDE::RTDE_Recv_BIT32(void)
