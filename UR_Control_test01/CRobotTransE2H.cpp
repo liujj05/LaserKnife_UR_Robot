@@ -130,6 +130,44 @@ void CRobotTransE2H::Trans_Teach_Vec(void)
 	}
 }
 
+bool CRobotTransE2H::Load_Origin_Teach_Pts(const char * fileName)
+{
+	bool return_val = false;	// 目前没有纠错机制
+	
+	ifstream ifile(fileName);
+	string line_data;
+	vector<string> result_str;
+
+	int data_rows = 0;
+
+	while (getline(ifile, line_data))
+	{
+		data_rows++;
+	}
+	ifile.close();
+
+	Origin_Teach_Pts = Mat::zeros(data_rows, 6, CV_64FC1);
+
+	ifile.open(fileName);
+	data_rows = 0;
+	while (getline(ifile, line_data))
+	{
+		result_str.clear();
+		result_str = SplitString(line_data, ",");
+		for (int j = 0; j < 6; j++)
+		{
+			Origin_Teach_Pts.at<double>(data_rows, j) = stod(result_str[j]);
+		}
+		data_rows++;
+	}
+
+	return_val = true;
+	//cout << "Loading " << fileName << " ..." << endl;
+	//cout << Origin_Teach_Pts << endl;
+
+	return return_val;
+}
+
 void CRobotTransE2H::Build_H(void)
 {
 	Mat temp1;
@@ -290,4 +328,27 @@ void CRobotTransE2H::rotationMat2Vec(Mat src)
 	Rot_Vec3[0] = nx * theta;
 	Rot_Vec3[1] = ny * theta;
 	Rot_Vec3[2] = nz * theta;
+}
+
+vector<string> CRobotTransE2H::SplitString(string str, string pattern)
+{
+	std::string::size_type pos;
+	std::vector<std::string> result;
+
+	str += pattern;//扩展字符串以方便操作
+
+	int size = str.size();
+
+	for (int i = 0; i<size; i++)
+	{
+		pos = str.find(pattern, i);
+		if (pos<size)
+		{
+			std::string s = str.substr(i, pos - i);
+			result.push_back(s);
+			i = pos + pattern.size() - 1;
+		}
+	}
+
+	return result;
 }

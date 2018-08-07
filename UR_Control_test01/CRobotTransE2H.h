@@ -7,7 +7,8 @@
 
 #pragma once
 #include <opencv2/opencv.hpp>
-
+#include <string>
+#include <vector>
 using namespace cv;
 using namespace std;
 
@@ -19,11 +20,14 @@ public:
 
 	Mat RI;
 	Mat tI;
+	Mat Origin_Teach_Pts;	// 载入的原始示教点会存放在这个矩阵里面
 
 	double input_origin_Teach_Vec6[6];
 	double output_new_Teach_Vec6[6];
 
 	void Trans_Teach_Vec(void);
+
+	bool Load_Origin_Teach_Pts(const char *fileName);
 
 private:
 	Mat cam_A;			// 内参数矩阵
@@ -54,5 +58,8 @@ private:
 
 	double Teach_Vec6[6];	// 中转量 - Build_Vec_from_T60 用
 	double Rot_Vec3[3];		// 中转量 - rotationMat2Vec 用
+
+	
+	vector<string> SplitString(string str, string pattern);
 };
 
