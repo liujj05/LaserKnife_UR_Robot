@@ -15,23 +15,23 @@ void ICP2D::ICP_2D(void)
 {
 	imPreProcess();
 
-	double pre_err = DBL_MAX;	// 迭代需要的误差量存储1
-	double now_err = 0;			// 迭代需要的误差量存储2
-	double delta_err;			// 收敛判定依据
+	float pre_err = FLT_MAX;	// 迭代需要的误差量存储1
+	float now_err = 0;			// 迭代需要的误差量存储2
+	float delta_err;			// 收敛判定依据
 	Mat res_ind, res_dist;		// K-D Tree 查找结果返回值
 	int res_ind_int = 0;		// 查找索引提取
-	double near_x, near_y;
-	Mat nearest_pts_from_ref = Mat(ICP_new_pts.rows, 2, CV_64FC1);
-	Mat mean_new = Mat(1, 2, CV_64FC1);		// ICP 计算过程中求解各个步骤的R、t的中间量，待匹配点云的重心
-	Mat mean_near = Mat(1, 2, CV_64FC1);	// ICP 计算过程中求解各个步骤的R、t的中间量，迭代中点云的重心
+	float near_x, near_y;
+	Mat nearest_pts_from_ref = Mat(ICP_new_pts.rows, 2, CV_32FC1);
+	Mat mean_new = Mat(1, 2, CV_32FC1);		// ICP 计算过程中求解各个步骤的R、t的中间量，待匹配点云的重心
+	Mat mean_near = Mat(1, 2, CV_32FC1);	// ICP 计算过程中求解各个步骤的R、t的中间量，迭代中点云的重心
 	Mat AXY, BXY; // 中间量
 	Mat H, U, S, Vt; // 中间量
-	Mat Mid_eye = Mat::eye(2, 2, CV_64FC1);
+	Mat Mid_eye = Mat::eye(2, 2, CV_32FC1);
 	Mat temp_new_pts;
 	Mat R, t; // 阶段计算结果
 	
-	R_res = Mat::eye(2, 2, CV_64FC1);
-	t_res = Mat::zeros(2, 1, CV_64FC1);
+	R_res = Mat::eye(2, 2, CV_32FC1);
+	t_res = Mat::zeros(2, 1, CV_32FC1);
 
 	// 为了保留每个new_pts，复制矩阵 ICP_new_pts 至 ICP_new_pts_origin
 	Mat ICP_new_pts_origin;
@@ -48,13 +48,13 @@ void ICP2D::ICP_2D(void)
 		{
 			My_Kdtree.knnSearch(ICP_new_pts.row(i), res_ind, res_dist, 1, flann::SearchParams(-1));
 			res_ind_int = res_ind.at<int>(0, 0); // 确认过变量类型应该是对的
-			near_x = ICP_ref_pts.at<double>(res_ind_int, 0);
-			near_y = ICP_ref_pts.at<double>(res_ind_int, 1);
-			nearest_pts_from_ref.at<double>(i, 0) = near_x;
-			nearest_pts_from_ref.at<double>(i, 1) = near_y;
+			near_x = ICP_ref_pts.at<float>(res_ind_int, 0);
+			near_y = ICP_ref_pts.at<float>(res_ind_int, 1);
+			nearest_pts_from_ref.at<float>(i, 0) = near_x;
+			nearest_pts_from_ref.at<float>(i, 1) = near_y;
 
-			now_err = now_err + sqrtf((ICP_new_pts.at<double>(i, 0) - near_x) * (ICP_new_pts.at<double>(i, 0) - near_x) +
-				(ICP_new_pts.at<double>(i, 1) - near_y) * (ICP_new_pts.at<double>(i, 1) - near_y));
+			now_err = now_err + sqrtf((ICP_new_pts.at<float>(i, 0) - near_x) * (ICP_new_pts.at<float>(i, 0) - near_x) +
+				(ICP_new_pts.at<float>(i, 1) - near_y) * (ICP_new_pts.at<float>(i, 1) - near_y));
 		}
 
 #ifdef PRINT_OUT
@@ -72,10 +72,10 @@ void ICP2D::ICP_2D(void)
 			pre_err = now_err;
 
 		// 求重心，注意：cv::mean 的返回值是一个 cv::scalar 它由四个元素构成，但是我们只用到第一个，所以后面多了个[0]
-		mean_new.at<double>(0, 0) = mean(ICP_new_pts.col(0))[0];
-		mean_new.at<double>(0, 1) = mean(ICP_new_pts.col(1))[0];
-		mean_near.at<double>(0, 0) = mean(nearest_pts_from_ref.col(0))[0];
-		mean_near.at<double>(0, 1) = mean(nearest_pts_from_ref.col(1))[0];
+		mean_new.at<float>(0, 0) = mean(ICP_new_pts.col(0))[0];
+		mean_new.at<float>(0, 1) = mean(ICP_new_pts.col(1))[0];
+		mean_near.at<float>(0, 0) = mean(nearest_pts_from_ref.col(0))[0];
+		mean_near.at<float>(0, 1) = mean(nearest_pts_from_ref.col(1))[0];
 
 #ifdef PRINT_OUT
 
@@ -118,7 +118,7 @@ void ICP2D::ICP_2D(void)
 
 #endif
 
-		Mid_eye.at<double>(1, 1) = determinant(Vt.t()*U.t());
+		Mid_eye.at<float>(1, 1) = determinant(Vt.t()*U.t());
 		R = Vt.t() * Mid_eye * U.t();
 		t = mean_near.t() - R * mean_new.t();
 
@@ -227,18 +227,18 @@ void ICP2D::imPreProcess(void)
 	ref_pt_num = ref_pt_vec.size();
 	new_pt_num = new_pt_vec.size();
 
-	ICP_ref_pts = Mat(ref_pt_num / ref_down_sample_rate, 2, CV_64FC1);
-	ICP_new_pts = Mat(new_pt_num / new_down_sample_rate, 2, CV_64FC1);
+	ICP_ref_pts = Mat(ref_pt_num / ref_down_sample_rate, 2, CV_32FC1);
+	ICP_new_pts = Mat(new_pt_num / new_down_sample_rate, 2, CV_32FC1);
 
 	for (int i = 0; i < ref_pt_num / ref_down_sample_rate; i++)
 	{
-		ICP_ref_pts.at<double>(i, 0) = ref_pt_vec[i * ref_down_sample_rate].x;
-		ICP_ref_pts.at<double>(i, 1) = ref_pt_vec[i * ref_down_sample_rate].y;
+		ICP_ref_pts.at<float>(i, 0) = ref_pt_vec[i * ref_down_sample_rate].x;
+		ICP_ref_pts.at<float>(i, 1) = ref_pt_vec[i * ref_down_sample_rate].y;
 	}
 	for (int i = 0; i < new_pt_num / new_down_sample_rate; i++)
 	{
-		ICP_new_pts.at<double>(i, 0) = new_pt_vec[i * new_down_sample_rate].x;
-		ICP_new_pts.at<double>(i, 1) = new_pt_vec[i * new_down_sample_rate].y;
+		ICP_new_pts.at<float>(i, 0) = new_pt_vec[i * new_down_sample_rate].x;
+		ICP_new_pts.at<float>(i, 1) = new_pt_vec[i * new_down_sample_rate].y;
 	}
 
 
