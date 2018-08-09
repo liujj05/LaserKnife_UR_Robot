@@ -6,42 +6,42 @@ CRobotTransE2H::CRobotTransE2H()
 {
 	cam_A = Mat::zeros(3, 3, CV_64FC1);
 	// ========按顺序填写内参标定数据========== 结合标定进行修改
-	cam_A.at<double>(0, 0) = 4211.1;	cam_A.at<double>(0, 2) = 617.1369;
-	cam_A.at<double>(1, 1) = 4213.3;	cam_A.at<double>(1, 2) = 498.0212;
+	cam_A.at<double>(0, 0) = 4399.2;	cam_A.at<double>(0, 2) = 602.8;
+	cam_A.at<double>(1, 1) = 4400.1;	cam_A.at<double>(1, 2) = 447.5;
 	cam_A.at<double>(2, 2) = 1;
 	// ====================================
 
 	// ========手眼标定结果======== 结合标定数据修改
 	T_C_to_0 = Mat::zeros(4, 4, CV_64FC1);
-	T_C_to_0.at<double>(0, 0) = 0.0815;		T_C_to_0.at<double>(0, 1) = 0.9954;		T_C_to_0.at<double>(0, 2) = 0.0510;
-	T_C_to_0.at<double>(1, 0) = 0.9963;		T_C_to_0.at<double>(1, 1) =-0.0800;		T_C_to_0.at<double>(1, 2) =-0.0299;
-	T_C_to_0.at<double>(2, 0) =-0.0257;		T_C_to_0.at<double>(2, 1) = 0.0532;		T_C_to_0.at<double>(2, 2) =-0.9983;
-	T_C_to_0.at<double>(0, 3) = 709.5354;
-	T_C_to_0.at<double>(1, 3) = -480.9874;
-	T_C_to_0.at<double>(2, 3) = 340.4273;
+	T_C_to_0.at<double>(0, 0) = 0.1267;		T_C_to_0.at<double>(0, 1) = 0.9914;		T_C_to_0.at<double>(0, 2) =-0.0335;
+	T_C_to_0.at<double>(1, 0) = 0.9907;		T_C_to_0.at<double>(1, 1) =-0.1281;		T_C_to_0.at<double>(1, 2) =-0.0450;
+	T_C_to_0.at<double>(2, 0) =-0.0489;		T_C_to_0.at<double>(2, 1) =-0.0275;		T_C_to_0.at<double>(2, 2) =-0.9984;
+	T_C_to_0.at<double>(0, 3) = 600.5852;
+	T_C_to_0.at<double>(1, 3) = -420.2688;
+	T_C_to_0.at<double>(2, 3) = 464.9889;
 	T_C_to_0.at<double>(3, 3) = 1;
 
 	// =====================================
 
 	// =================测量位置的6系矩阵===================
 	T_6_to_0_test = Mat::zeros(4, 4, CV_64FC1);
-	T_6_to_0_test.at<double>(0, 0) = 0.0696;		T_6_to_0_test.at<double>(0, 1) = 0.0385;		T_6_to_0_test.at<double>(0, 2) = 0.9968;
-	T_6_to_0_test.at<double>(1, 0) = 0.7061;		T_6_to_0_test.at<double>(1, 1) = 0.7039;		T_6_to_0_test.at<double>(1, 2) =-0.0765;
-	T_6_to_0_test.at<double>(2, 0) =-0.7047;		T_6_to_0_test.at<double>(2, 1) = 0.7092;		T_6_to_0_test.at<double>(2, 2) = 0.0218;
-	T_6_to_0_test.at<double>(0, 3) = 599.4320;
-	T_6_to_0_test.at<double>(1, 3) = -398.2360;
-	T_6_to_0_test.at<double>(2, 3) = 159.6439;
+	T_6_to_0_test.at<double>(0, 0) = -0.0429;		T_6_to_0_test.at<double>(0, 1) = -0.0451;		T_6_to_0_test.at<double>(0, 2) =  0.9981;
+	T_6_to_0_test.at<double>(1, 0) = -0.9983;		T_6_to_0_test.at<double>(1, 1) = -0.0367;		T_6_to_0_test.at<double>(1, 2) = -0.0445;
+	T_6_to_0_test.at<double>(2, 0) =  0.0387;		T_6_to_0_test.at<double>(2, 1) = -0.9983;		T_6_to_0_test.at<double>(2, 2) =  0.0434;
+	T_6_to_0_test.at<double>(0, 3) =  380.64;
+	T_6_to_0_test.at<double>(1, 3) = -417.94;
+	T_6_to_0_test.at<double>(2, 3) =  260.37;
 	T_6_to_0_test.at<double>(3, 3) = 1;
 
 	// =====================================
 	// =============测量位置的外参数矩阵=============
 	T_Cal_to_C = Mat::zeros(4, 4, CV_64FC1);
-	T_Cal_to_C.at<double>(0, 0) = 0.0671;		T_Cal_to_C.at<double>(0, 1) = -0.9973;		T_Cal_to_C.at<double>(0, 2) = 0.0286;
-	T_Cal_to_C.at<double>(1, 0) = 0.9974;		T_Cal_to_C.at<double>(1, 1) = 0.0663;		T_Cal_to_C.at<double>(1, 2) = -0.0293;
-	T_Cal_to_C.at<double>(2, 0) = 0.0274;		T_Cal_to_C.at<double>(2, 1) = 0.0305;		T_Cal_to_C.at<double>(2, 2) = 0.9992;
-	T_Cal_to_C.at<double>(0, 3) = 10.1428;
-	T_Cal_to_C.at<double>(1, 3) = -20.5069;
-	T_Cal_to_C.at<double>(2, 3) = 212.0156;
+	T_Cal_to_C.at<double>(0, 0) = -0.9999;		T_Cal_to_C.at<double>(0, 1) = -0.0122;		T_Cal_to_C.at<double>(0, 2) = -0.0011;
+	T_Cal_to_C.at<double>(1, 0) = -0.0123;		T_Cal_to_C.at<double>(1, 1) = -0.9998;		T_Cal_to_C.at<double>(1, 2) =  0.0128;
+	T_Cal_to_C.at<double>(2, 0) = -0.0009;		T_Cal_to_C.at<double>(2, 1) =  0.0128;		T_Cal_to_C.at<double>(2, 2) =  0.9999;
+	T_Cal_to_C.at<double>(0, 3) = 10.8158;
+	T_Cal_to_C.at<double>(1, 3) = 3.4478;
+	T_Cal_to_C.at<double>(2, 3) = 207.8573;
 	T_Cal_to_C.at<double>(3, 3) = 1;
 }
 
