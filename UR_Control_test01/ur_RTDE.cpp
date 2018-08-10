@@ -161,7 +161,7 @@ void ur_RTDE::RTDE_Recv_BIT32(void)
     state = PyEval_CallObject(
 					PyObject_GetAttrString(pInstance_con, "receive"),
 					NULL);
-
+	//Py_INCREF(state);
     state_output = 
         PyObject_GetAttrString(state,
         "output_bit_registers0_to_31"
