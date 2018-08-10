@@ -21,13 +21,13 @@ exe_time = 1e3*(stop_t.QuadPart - start_t.QuadPart) / freq.QuadPart
 
 
 // 标志位宏定义
-#define FLAG_AT_CAM_POS  0x80000000
-#define FLAG_AT_CAM_POS2 0x40000000
+#define FLAG_AT_CAM_POS  0x40000000
+#define FLAG_AT_CAM_POS2 0x20000000
 
 
 // 调试
-#define NO_CAM
-#define NO_ROBOT
+//#define NO_CAM
+//#define NO_ROBOT
 
 // 用于调试
 void Delay(int time)//time*1000为秒数 
@@ -73,7 +73,7 @@ int main()
 	my_2D_ICP.iter_thresh = 0.001;
 	my_2D_ICP.ref_down_sample_rate = 5;
 	my_2D_ICP.new_down_sample_rate = 5;
-	my_2D_ICP.binary_thresh = 50;
+	my_2D_ICP.binary_thresh = 150;
 
 	// #0.6 初始化一个E2H类
 	CRobotTransE2H my_robot_trans;
@@ -105,6 +105,7 @@ int main()
 	
 #ifndef NO_ROBOT
 	// 建立 RTDE 连接
+	//my_RTDE.RTDE_Send_Stop();
 	my_RTDE.RTDE_Send_Start();
 #endif
 
@@ -114,11 +115,19 @@ int main()
 
 	// 运行后进行一个人工输入，方便暂停一下看一看目前的状态
 
+
 #ifndef NO_ROBOT
 	// 初始化标志位
 	my_RTDE.RTDE_Send_BIT32(0);
 	Delay(100);
 #endif
+
+	/*while (1)
+	{
+		my_RTDE.RTDE_Recv_BIT32();
+		Delay(200);
+		cout << "Receive is " << my_RTDE.state_res << endl;
+	}*/
 
 	char input_str[16];
 	cout << "Press ENTER to continue..." << endl;
@@ -130,12 +139,15 @@ int main()
 
 	cout << "# Waiting a new knife..." << endl;
 
+	
+	
+
 #ifndef NO_ROBOT
 	TIMER_START; // 计时-观测响应时间
 	while (true)
 	{
 		my_RTDE.RTDE_Recv_BIT32();
-		Delay(100); // 保险起见还是等待一下 
+		Delay(200); // 保险起见还是等待一下 
 		//cout << "UR Control Waiting... Flag 0 --- " << my_RTDE.state_res << endl;
 		if (my_RTDE.state_res & FLAG_AT_CAM_POS)
 		{
@@ -147,6 +159,9 @@ int main()
 	cout << "++++ Flag detected in " << exe_time << " ms" << endl;
 #endif
 
+
+
+
 	// #4 拍摄+测量
 #ifndef NO_CAM
 	TIMER_START;	// 计时开始：拍摄-测量-上传完成
@@ -154,6 +169,8 @@ int main()
 	
 	// #4.1 采集 new 图像（新匹配）来初始化 Image_New_Knife ==
 	my_Cam.Cap_single_image();
+
+
 	// 首次采集生成存储空间后，可以用copyTo，不额外重新分配空间
 	my_Cam.Current_Mat.copyTo(Image_New_Knife);
 	// ======================================================
@@ -177,7 +194,8 @@ int main()
 	// #4.2 ICP 匹配	
 	// =================== ICP匹配流程 =======================
 	my_2D_ICP.Image_new = Image_New_Knife;
-	// my_2D_ICP.Draw_Contrary();  // 这一句可以取消注释看一下当前刀具和基准刀具的差别
+	imwrite("new_knife.bmp", Image_New_Knife);
+	//my_2D_ICP.Draw_Contrary();  // 这一句可以取消注释看一下当前刀具和基准刀具的差别
 	my_2D_ICP.ICP_2D();
 	// ======================================================
 		
@@ -185,12 +203,26 @@ int main()
 	// #5 根据 ICP 结果改造示教点
 	// #5.1 载入示教点 （已经在初始化做过）
 	// #5.2 载入ICP结果
-	my_robot_trans.RI = my_2D_ICP.R_res;
-	my_robot_trans.tI = my_2D_ICP.t_res;
+	//my_robot_trans.RI = my_2D_ICP.R_res;
+	//my_robot_trans.tI = my_2D_ICP.t_res;
+	my_2D_ICP.R_res.convertTo(my_robot_trans.RI, CV_64FC1);
+	my_2D_ICP.t_res.convertTo(my_robot_trans.tI, CV_64FC1);
 	// #5.3 计算所有示教点并传输进入UR机器人
 	int teach_pts_num = my_robot_trans.Origin_Teach_Pts.rows;		// 示教点数
 
 #ifndef NO_ROBOT
+	my_robot_trans.Compute_Trans_Mat();
+
+	// 等待机器人准备好传输
+	while (1)
+	{
+		my_RTDE.RTDE_Recv_BIT32();				// 接收机器人发送的标志位
+		Delay(200);
+		//cout << " ++++ flag is " << my_RTDE.state_res << endl;
+		if (0 == (my_RTDE.state_res & 0x01))	// 提取对应位数，是1证明赋值完毕
+			break;
+	}
+
 	for (int i = 0; i < teach_pts_num; i++)
 	{
 		for (int j = 0; j < 6; j++) // 准备进行转换
@@ -211,19 +243,27 @@ int main()
 
 		// 传输
 		my_RTDE.RTDE_Send_POINT(my_robot_trans.output_new_Teach_Vec6, 6);	// 发送新示教点
-		Delay(100);															// 额外给点时间确保发送完成
-		my_RTDE.RTDE_Send_BIT32(0x01 << i);									// 通知机器人收第i个点
+		Delay(200);															// 额外给点时间确保发送完成
+		my_RTDE.RTDE_Send_BIT32((0x01 << i));									// 通知机器人收第i个点
+		Delay(100);
 		cout << "# Send point " << i << " over, waiting..." << endl;
 		while (1)
 		{
 			my_RTDE.RTDE_Recv_BIT32();				// 接收机器人发送的标志位
-			Delay(100);
+			Delay(200);
+			//cout << " ++++ flag is " << my_RTDE.state_res << endl;
 			if (my_RTDE.state_res & (0x01 << i))	// 提取对应位数，是1证明赋值完毕
 				break;
 		}
 		cout << "++++ point " << i << " received" << endl;
 	}
 #else
+	my_robot_trans.Compute_Trans_Mat();
+
+	cout << "============Trans_6i_to_6s==============" << endl;
+	cout << my_robot_trans.Trans_6i_to_6s << endl;
+	cout << "========================================" << endl;
+
 	for (int i = 0; i < teach_pts_num; i++)
 	{
 		for (int j = 0; j < 6; j++) // 准备进行转换
@@ -289,7 +329,10 @@ int main()
 	my_RTDE.RTDE_Send_Stop();
 	// 退出Python的环境
 	Py_Finalize();
+	getchar();
+	getchar();
 #else
+	getchar();
 	getchar();
 #endif
 
