@@ -25,6 +25,8 @@ public:
 	double input_origin_Teach_Vec6[6];
 	double output_new_Teach_Vec6[6];
 
+	Mat Trans_6i_to_6s;
+	void Compute_Trans_Mat(void);
 	void Trans_Teach_Vec(void);
 
 	bool Load_Origin_Teach_Pts(const char *fileName);
@@ -59,6 +61,12 @@ private:
 	double Teach_Vec6[6];	// 中转量 - Build_Vec_from_T60 用
 	double Rot_Vec3[3];		// 中转量 - rotationMat2Vec 用
 
+	// 更精确的求逆方法
+	Mat Inverse_Of_T(Mat T_src);
+	Mat invA;
+	void Inverse_Of_A(void);
+	Mat invH;
+	void Inverse_Of_H(void);
 	
 	vector<string> SplitString(string str, string pattern);
 };
