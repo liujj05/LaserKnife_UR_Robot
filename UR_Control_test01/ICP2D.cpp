@@ -1,6 +1,12 @@
 #include "stdafx.h"
 #include "ICP2D.h"
 
+#define SHOW_IMG(a,b,c) namedWindow(a, CV_WINDOW_NORMAL);\
+resizeWindow(a, b.cols / 2, b.rows / 2);\
+imshow(a, b);\
+waitKey(c);\
+destroyWindow(a)
+
 
 ICP2D::ICP2D()
 {
@@ -162,14 +168,24 @@ void ICP2D::Draw_Contrary(void)
 
 	// Step1. 二值化
 	Mat T_ref, T_new;
+
+	//SHOW_IMG("Im ref", Image_ref, 9000);
+	//SHOW_IMG("Im new", Image_new, 9000);
+
 	threshold(Image_ref, T_ref, binary_thresh, 255, THRESH_BINARY);
 	threshold(Image_new, T_new, binary_thresh, 255, THRESH_BINARY);
+
+	//SHOW_IMG("Thresh ref", T_ref, 9000);
+	//SHOW_IMG("Thresh new", T_new, 9000);
 
 	// Step2. 边缘检测
 	Mat E_ref, E_new;
 	int edge_thresh = 50;
 	Canny(T_ref, E_ref, edge_thresh, edge_thresh * 3);
 	Canny(T_new, E_new, edge_thresh, edge_thresh * 3);
+
+	//SHOW_IMG("Edge ref", E_ref, 9000);
+	//SHOW_IMG("Edge new", E_new, 9000);
 
 	Mat Show_Image_Color = Mat(E_ref.rows, E_ref.cols, CV_8UC3);
 
