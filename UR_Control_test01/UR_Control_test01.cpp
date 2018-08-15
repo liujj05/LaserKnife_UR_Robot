@@ -26,8 +26,9 @@ exe_time = 1e3*(stop_t.QuadPart - start_t.QuadPart) / freq.QuadPart
 
 
 // 调试
-//#define NO_CAM
-//#define NO_ROBOT
+#define NO_CAM
+#define NO_ROBOT
+//#define DEBUG_ALL
 
 // 用于调试
 void Delay(int time)//time*1000为秒数 
@@ -39,6 +40,7 @@ void Delay(int time)//time*1000为秒数
 
 int main()
 {
+#ifndef DEBUG_ALL
 	//=======================================
 	//
 	//  ----  正式程序  ----
@@ -176,6 +178,9 @@ int main()
 	// ======================================================
 	
 	cout << "# Image grabbed, matching..." << endl;
+	// 通知机器人可以运动了
+	my_RTDE.RTDE_Send_BIT32(FLAG_AT_CAM_POS);
+	Delay(100);
 #else
 	TIMER_START;
 	cout << "# Loading image..." << endl;
@@ -336,6 +341,18 @@ int main()
 	getchar();
 #endif
 
+#endif // DEBUG_ALL
+
+#ifdef DEBUG_ALL
+	// 测试01 RI与tI为 I2 和 0 时，转换矩阵是否为I4
+	CRobotTransE2H test_E2H;
+	test_E2H.RI = Mat::eye(2, 2, CV_64FC1);
+	test_E2H.tI = Mat::zeros(2, 1, CV_64FC1);
+	test_E2H.Compute_Trans_Mat();
+
+	cout << test_E2H.Trans_6i_to_6s << endl;
+	getchar();
+#endif
 	return 0;
 }
 
